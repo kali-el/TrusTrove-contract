@@ -32,6 +32,16 @@ impl MockRegistry {
 #[contracttype]
 pub struct DataKey(Address);
 
+#[contract]
+pub struct MockPool;
+
+#[contractimpl]
+impl MockPool {
+    pub fn handle_default(_env: Env, _invoice_id: BytesN<32>) -> bool {
+        true
+    }
+}
+
 type Setup = (
     Env,
     InvoiceContractClient<'static>,
@@ -91,6 +101,7 @@ fn test_create_fails_zero_face_value() {
 #[should_panic(expected = "Error(Contract, #7)")]
 fn test_create_fails_past_due_date() {
     let (env, client, issuer, buyer, _) = setup();
+    env.ledger().set_timestamp(86400);
     let past_date = env.ledger().timestamp() - 1;
     client.create(&issuer, &buyer, &1_000_000_000, &past_date);
 }
@@ -279,8 +290,8 @@ fn test_trigger_default_requires_past_due_date() {
     let invoice_id = client.create(&issuer, &buyer, &1_000_000_000, &due_date);
     client.list_for_financing(&invoice_id, &200);
 
-    let pool = Address::generate(&env);
-    client.set_pool_contract(&pool);
+    let pool_id = env.register_contract(None, MockPool);
+    client.set_pool_contract(&pool_id);
     client.mark_funded(&invoice_id, &980_000_000);
     client.mark_shipped(&invoice_id);
     client.confirm_delivery(&invoice_id, &issuer);
