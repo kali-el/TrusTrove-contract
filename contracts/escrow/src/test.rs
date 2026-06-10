@@ -49,9 +49,11 @@ fn setup() -> (
     let _mock_token = MockTokenClient::new(&env, &usdc_id);
 
     let pool_bal_key = BalanceKey(pool.clone());
-    env.storage()
-        .persistent()
-        .set(&pool_bal_key, &10_000_000_000_000i128);
+    env.as_contract(&usdc_id, || {
+        env.storage()
+            .persistent()
+            .set(&pool_bal_key, &10_000_000_000_000i128);
+    });
 
     let contract_id = env.register_contract(None, EscrowContract);
     let client = EscrowContractClient::new(&env, &contract_id);

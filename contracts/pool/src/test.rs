@@ -68,6 +68,7 @@ struct TestEnv {
     env: Env,
     pool: PoolContractClient<'static>,
     invoice: RealInvoiceClient<'static>,
+    usdc_id: Address,
     issuer: Address,
     buyer: Address,
     lp: Address,
@@ -90,13 +91,17 @@ fn setup() -> TestEnv {
     let usdc_id = env.register_contract(None, MockToken);
 
     let lp_bal_key = TKey(lp.clone());
-    env.storage()
-        .persistent()
-        .set(&lp_bal_key, &100_000_000_000_000i128);
+    env.as_contract(&usdc_id, || {
+        env.storage()
+            .persistent()
+            .set(&lp_bal_key, &100_000_000_000_000i128);
+    });
     let buyer_bal_key = TKey(buyer.clone());
-    env.storage()
-        .persistent()
-        .set(&buyer_bal_key, &100_000_000_000_000i128);
+    env.as_contract(&usdc_id, || {
+        env.storage()
+            .persistent()
+            .set(&buyer_bal_key, &100_000_000_000_000i128);
+    });
 
     let invoice_id = env.register_contract(None, RealInvoice);
     let escrow_id = env.register_contract(None, RealEscrow);
@@ -117,6 +122,7 @@ fn setup() -> TestEnv {
         env,
         pool,
         invoice,
+        usdc_id,
         issuer,
         buyer,
         lp,
@@ -312,10 +318,12 @@ fn test_multiple_lps_can_deposit() {
     let te = setup();
     let lp2 = Address::generate(&te.env);
     let lp2_bal_key = TKey(lp2.clone());
-    te.env
-        .storage()
-        .persistent()
-        .set(&lp2_bal_key, &100_000_000_000_000i128);
+    te.env.as_contract(&te.usdc_id, || {
+        te.env
+            .storage()
+            .persistent()
+            .set(&lp2_bal_key, &100_000_000_000_000i128);
+    });
 
     let s1 = te.pool.deposit(&te.lp, &10_000_000_000);
     let s2 = te.pool.deposit(&lp2, &20_000_000_000);
