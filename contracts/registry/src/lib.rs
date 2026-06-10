@@ -45,6 +45,29 @@ impl RegistryContract {
         true
     }
 
+    pub fn register_buyer(
+        env: Env,
+        address: Address,
+        metadata: Map<String, String>,
+    ) -> bool {
+        address.require_auth();
+        if env.storage().persistent().has(&DataKey::Profile(address.clone())) {
+            panic_with_error!(&env, RegistryError::AlreadyRegistered);
+        }
+        let profile = Profile {
+            address: address.clone(),
+            role: Role::Buyer,
+            verified: true,
+            registered_at: env.ledger().timestamp(),
+            metadata,
+        };
+        let key = DataKey::Profile(address.clone());
+        env.storage().persistent().set(&key, &profile);
+        env.storage().persistent().extend_ttl(&key, 100, 2_000_000);
+        events::buyer_registered(&env, &address);
+        true
+    }
+
     pub fn get_admin(env: Env) -> Address {
         env.storage()
             .instance()
