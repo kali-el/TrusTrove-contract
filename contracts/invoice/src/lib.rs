@@ -514,7 +514,9 @@ impl InvoiceContract {
             .get(&DataKey::Admin)
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
         admin.require_auth();
-        env.storage().instance().set(&DataKey::ExpiryWindow, &window);
+        env.storage()
+            .instance()
+            .set(&DataKey::ExpiryWindow, &window);
         Self::extend_instance_ttl(&env);
     }
 
@@ -547,11 +549,13 @@ impl InvoiceContract {
             .get(&DataKey::Admin)
             .unwrap_or_else(|| panic_with_error!(&env, InvoiceError::NotFound));
 
-        let is_issuer = env.try_invoke_contract::<(), soroban_sdk::Error>(
-            &env.current_contract_address(),
-            &Symbol::new(&env, "check_auth"),
-            (invoice.issuer.clone(),).into_val(&env),
-        ).is_ok();
+        let is_issuer = env
+            .try_invoke_contract::<(), soroban_sdk::Error>(
+                &env.current_contract_address(),
+                &Symbol::new(&env, "check_auth"),
+                (invoice.issuer.clone(),).into_val(&env),
+            )
+            .is_ok();
 
         if is_issuer {
             // Already authorized by issuer

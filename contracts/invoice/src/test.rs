@@ -2,7 +2,7 @@
 
 use soroban_sdk::{
     contract, contractimpl, contracttype, testutils::Address as _, testutils::Ledger, Address,
-    BytesN, Env, Symbol, IntoVal,
+    BytesN, Env, IntoVal, Symbol,
 };
 
 use crate::{InvoiceContract, InvoiceContractClient, InvoiceStatus};
@@ -441,7 +441,8 @@ fn test_expire_listing_succeeds_by_issuer() {
     client.list_for_financing(&invoice_id, &200);
 
     // Fast forward ledger time by 7 days + 1 second
-    env.ledger().set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
 
     let result = client.expire_listing(&invoice_id);
     assert!(result);
@@ -456,7 +457,8 @@ fn test_expire_listing_succeeds_by_admin() {
     client.list_for_financing(&invoice_id, &200);
 
     // Fast forward ledger time by 7 days + 1 second
-    env.ledger().set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
 
     let result = client.expire_listing(&invoice_id);
     assert!(result);
@@ -472,7 +474,8 @@ fn test_expire_listing_early_panics() {
     client.list_for_financing(&invoice_id, &200);
 
     // Fast forward ledger time by only 5 days (less than 7 days)
-    env.ledger().set_timestamp(env.ledger().timestamp() + 5 * 24 * 60 * 60);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 5 * 24 * 60 * 60);
 
     client.expire_listing(&invoice_id);
 }
@@ -485,7 +488,8 @@ fn test_expire_listing_wrong_status_panics() {
     let invoice_id = client.create(&issuer, &buyer, &1_000_000_000, &due_date, &usdc);
 
     // Fast forward ledger time
-    env.ledger().set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
 
     client.expire_listing(&invoice_id);
 }
@@ -502,7 +506,8 @@ fn test_expire_listing_configurable_window() {
     assert_eq!(client.get_expiry_window(), 86400);
 
     // Fast forward by 1 day + 1 second
-    env.ledger().set_timestamp(env.ledger().timestamp() + 86400 + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 86400 + 1);
 
     let result = client.expire_listing(&invoice_id);
     assert!(result);
@@ -513,7 +518,7 @@ fn test_expire_listing_configurable_window() {
 #[should_panic]
 fn test_expire_listing_stranger_panics() {
     let env = Env::default();
-    
+
     let registry_id = env.register_contract(None, MockRegistry);
     let registry_client = MockRegistryClient::new(&env, &registry_id);
 
@@ -526,52 +531,53 @@ fn test_expire_listing_stranger_panics() {
     let client = InvoiceContractClient::new(&env, &contract_id);
 
     let admin = Address::generate(&env);
-    
-    env.mock_auths(&[
-        soroban_sdk::testutils::MockAuth {
-            address: &admin,
-            invoke: &soroban_sdk::testutils::MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "initialize",
-                args: (admin.clone(), registry_id.clone()).into_val(&env),
-                sub_invokes: &[],
-            }
-        }
-    ]);
+
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &admin,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "initialize",
+            args: (admin.clone(), registry_id.clone()).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
     client.initialize(&admin, &registry_id);
 
     let usdc = Address::generate(&env);
     let due_date = env.ledger().timestamp() + 86400;
-    
-    env.mock_auths(&[
-        soroban_sdk::testutils::MockAuth {
-            address: &issuer,
-            invoke: &soroban_sdk::testutils::MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "create",
-                args: (issuer.clone(), buyer.clone(), 1_000_000_000u128, due_date, usdc.clone()).into_val(&env),
-                sub_invokes: &[],
-            }
-        }
-    ]);
+
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &issuer,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "create",
+            args: (
+                issuer.clone(),
+                buyer.clone(),
+                1_000_000_000u128,
+                due_date,
+                usdc.clone(),
+            )
+                .into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
     let invoice_id = client.create(&issuer, &buyer, &1_000_000_000, &due_date, &usdc);
 
-    env.mock_auths(&[
-        soroban_sdk::testutils::MockAuth {
-            address: &issuer,
-            invoke: &soroban_sdk::testutils::MockAuthInvoke {
-                contract: &contract_id,
-                fn_name: "list_for_financing",
-                args: (invoice_id.clone(), 200u32).into_val(&env),
-                sub_invokes: &[],
-            }
-        }
-    ]);
+    env.mock_auths(&[soroban_sdk::testutils::MockAuth {
+        address: &issuer,
+        invoke: &soroban_sdk::testutils::MockAuthInvoke {
+            contract: &contract_id,
+            fn_name: "list_for_financing",
+            args: (invoice_id.clone(), 200u32).into_val(&env),
+            sub_invokes: &[],
+        },
+    }]);
     client.list_for_financing(&invoice_id, &200);
 
-    env.ledger().set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
+    env.ledger()
+        .set_timestamp(env.ledger().timestamp() + 7 * 24 * 60 * 60 + 1);
 
     // Calling expire_listing without mocking auths for issuer or admin should panic due to failed require_auth.
     client.expire_listing(&invoice_id);
 }
-
